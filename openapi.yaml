@@ -1,0 +1,735 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.0/schema.json
+openapi: '3.0.0'
+info:
+  title: InnoSpace API
+  version: '4.0'
+tags:
+  - name: Internal
+    description: Server functionality for internal use
+  - name: Auth
+    description: Authentication related functionality
+  - name: Project
+    description: Project related functionality
+servers:
+  - url: http://localhost:3000/v4
+    description: Development Server
+  - url: https://api.innospace.io/v4
+    description: Production Server
+paths:
+  /heartbeat:
+    get:
+      summary: Check servers' heart beat
+      tags:
+        - Internal
+      responses:
+        '200':
+          description: Server OK
+  /auth/basic:
+    post:
+      summary: Authenticate user by username and password
+      tags:
+        - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BasicAuth'
+      responses:
+        '301':
+          description: Authentication passed
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: sid=abcde12345; Path=/; HttpOnly
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Error message
+                    example: Username or password is incorrect
+  /auth/google:
+    get:
+      tags:
+        - Auth
+      summary: Authenticate user by OAuth2 with Google
+      parameters:
+        - in: query
+          name: next
+          schema:
+            type: string
+            description: Redirect URL after successful login
+            default: /dashboard
+          required: false
+      responses:
+        '302':
+          description: Redirect for authentication
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: sid=abcde12345; Path=/; HttpOnly
+              required: false
+  /auth/signout:
+    get:
+      tags:
+        - Auth
+      summary: Signout current user
+      security:
+        - cookie: []
+      parameters:
+        - in: cookie
+          name: sid
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /project/trending:
+    get:
+      tags:
+        - Project
+      summary: Get trending projects sorted by views
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BasicProject'
+  /project/personalized:
+    get:
+      tags:
+        - Project
+      summary: Get personalized projects recommendation sorted by interest relevance
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BasicProject'
+  /project/search:
+    get:
+      tags:
+        - Project
+      summary: Get projects sorted by relevance to search keyword
+      security:
+        - cookie: []
+      parameters:
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          required: true
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BasicProject'
+  /project/joined:
+    get:
+      tags:
+        - Project
+      summary: Get projects that current user has joined
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/CoreProject'
+                    - type: object
+                      properties:
+                        joinedAt:
+                          type: string
+                          format: date-time
+                          description: Date-time (RFC 3339) when user's applicaion to join the project has been approved
+                          example: '2022-05-20T09:28:11.698Z'
+  /project/posted:
+    get:
+      tags:
+        - Project
+      summary: Get projects that current user has posted
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/CoreProject'
+                    - type: object
+                      properties:
+                        postedAt:
+                          type: string
+                          format: date-time
+                          description: Date-time (RFC 3339) when project has been posted
+                          example: '2022-05-20T09:28:11.698Z'
+  /project/drafted:
+    get:
+      tags:
+        - Project
+      summary: Get projects that current user has drafted
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/CoreProject'
+                    - type: object
+                      properties:
+                        draftAt:
+                          type: string
+                          format: date-time
+                          description: Project's first time to save as draft in Date-time (RFC 3339)
+                          example: '2022-05-20T09:28:11.698Z'
+  /project:
+    get:
+      tags:
+        - Project
+      summary: Get info about a project
+      parameters:
+        - in: query
+          name: id
+          description: Project ID
+          schema:
+            type: string
+          required: true
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectInfo'
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+    post:
+      tags:
+        - Project
+      summary: Create a project
+      security:
+        - cookie: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FullProject'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/400'
+        '409':
+          $ref: '#/components/responses/409'
+    patch:
+      tags:
+        - Project
+      summary: Patch a project
+      security:
+        - cookie: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FullProject'
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+    delete:
+      tags:
+        - Project
+      summary: Delete a project
+      security:
+        - cookie: []
+      responses:
+        '200':
+          description: OK
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+components:
+  responses:
+    '400':
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error message
+                example: Paramter is not specified
+    '403':
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error message
+                example: Permission denied
+    '404':
+      description: Not Found
+    '409':
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+                description: Error message
+                example: Id is conflict with others
+  securitySchemes:
+    cookie:
+      type: apiKey
+      in: cookie
+      name: sid
+      description: Session ID
+  parameters:
+    offset:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: The number of items to skip.
+    limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+      description: The numbers of items to return.
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: User's id
+          example: johndoe
+        name:
+          type: string
+          description: User's name
+          example: John Doe
+        description:
+          type: string
+          description: User's description
+          example: MSCS Student from UC Santa Cruz
+          nullable: true
+        email:
+          type: string
+          description: User's email address
+          example: john@example.com
+        avatar:
+          type: string
+          description: File id of user's avatar
+          example: 'abcd'
+        resume:
+          type: string
+          description: File id of user's resume
+          example: 'efgh'
+          nullable: true
+        fields:
+          type: array
+          description: Fields that user is interested in
+          items:
+            type: string
+          example:
+            - Software
+            - Music
+          uniqueItems: true
+        skills:
+          type: array
+          description: Skills that user has
+          items:
+            type: string
+          example:
+            - React.js
+            - TypeScript
+          uniqueItems: true
+        status:
+          type: string
+          enum:
+            - NORMAL
+            - ARCHIVED
+            - BLOCKED
+          description: User's status
+          example: NORMAL
+        googleId:
+          type: string
+          description: Google account id associated with user
+          example: '12231433454'
+          nullable: true
+    Position:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Position's id
+          example: 10
+        title:
+          type: string
+          description: Position's title
+          example: Front-end Developer
+        type:
+          type: string
+          enum:
+            - UNPAID_VOLUNTEER
+          description: Position's type
+          example: UNPAID_VOLUNTEER
+        description:
+          type: string
+          description: Position's description in CommonMark
+          example: |
+            > This is a sample position description
+        requirement:
+          type: string
+          description: Position's description in CommonMark
+          example: |
+            > This is a sample requirement
+        preference:
+          type: string
+          description: Position's description in CommonMark
+          example: |
+            > This is a sample position preference
+        skills:
+          type: array
+          description: Skills that position needs
+          items:
+            type: string
+          example:
+            - React.js
+            - TypeScript
+          uniqueItems: true
+        project:
+          type: string
+          description: Id of project which current position belongs to
+          example: innospace
+        views:
+          type: integer
+          description: Position's view count
+          example: 20
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - POSTED
+          description: Position's status
+          example: POSTED
+        draftAt:
+          type: string
+          format: date-time
+          description: Position's first time to save as draft in Date-time (RFC 3339)
+          example: '2022-05-20T09:28:11.698Z'
+        postedAt:
+          type: string
+          format: date-time
+          description: Position's post time in Date-time (RFC 3339)
+          example: '2022-05-20T09:28:11.698Z'
+        public:
+          type: boolean
+          description: Whether the position should display to other users
+          example: true
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Application's id
+          example: 10
+        project:
+          type: string
+          description: Id of project which application belongs to
+          example: innospace
+        position:
+          type: integer
+          description: Id of position which application belongs to
+          example: 10
+        owner:
+          type: string
+          description: Id of user which application belongs to
+        name:
+          type: string
+          description: User's name
+          example: John Doe
+        email:
+          type: string
+          description: User's email address
+          example: john@example.com
+        phone:
+          type: string
+          description: User's mobile phone number
+          example: '+1 123-456-7890'
+        resume:
+          type: string
+          description: File id of user's resume
+          example: 'efgh'
+        status:
+          type: string
+          description: Applicaiton's status
+          enum:
+            - SUBMITTED
+            - REVIEWED
+            - ACCEPTED
+            - REJECTED
+            - WITHDRAWN
+        submittedAt:
+          type: string
+          format: date-time
+          description: Date-time (RFC 3339) when application has been submitted
+          example: '2022-05-20T09:28:11.698Z'
+        reviewedAt:
+          type: string
+          format: date-time
+          description: Date-time (RFC 3339) when application has been reviewed
+          example: '2022-05-20T09:28:11.698Z'
+        acceptedAt:
+          type: string
+          format: date-time
+          description: Date-time (RFC 3339) when application has been accepted
+          example: '2022-05-20T09:28:11.698Z'
+        rejectedAt:
+          type: string
+          format: date-time
+          description: Date-time (RFC 3339) when application has been rejected
+          example: '2022-05-20T09:28:11.698Z'
+        withdrawnAt:
+          type: string
+          format: date-time
+          description: Date-time (RFC 3339) when application has been withdrawn
+          example: '2022-05-20T09:28:11.698Z'
+    BasicAuth:
+      type: object
+      properties:
+        userId:
+          type: string
+          description: User id
+          example: johndoe
+        password:
+          type: string
+          description: Password in clear text
+          example: sample-password
+    CorePosition:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Position's id
+          example: 10
+        title:
+          type: string
+          description: Position's title
+          example: Front-end Developer
+        type:
+          type: string
+          enum:
+            - UNPAID_VOLUNTEER
+          description: Position's type
+          example: UNPAID_VOLUNTEER
+        skills:
+          type: array
+          description: Skills that position needs
+          items:
+            type: string
+          example:
+            - React.js
+            - TypeScript
+          uniqueItems: true
+        views:
+          type: integer
+          description: Position's view count
+          example: 20
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - POSTED
+          description: Position's status
+          example: POSTED
+    CoreProject:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Project's id
+          example: innospace
+        name:
+          type: string
+          description: Project's name
+          example: InnoSpace
+        avatar:
+          type: string
+          description: File id of project's avatar
+          example: 'abcd'
+        summary:
+          type: string
+          description: Project's summary
+          example: 'This is a sample summary'
+        fields:
+          type: array
+          description: Fields that user is interested in
+          items:
+            type: string
+          example:
+            - Software
+            - Music
+          uniqueItems: true
+    BasicProject:
+      allOf:
+        - $ref: '#/components/schemas/CoreProject'
+        - type: object
+          properties:
+            views:
+              type: integer
+              description: Project's view count
+              example: 20
+            openPositions:
+              type: integer
+              description: Project's current open positions count
+              example: 5
+            contactName:
+              type: string
+              description: Name of project's contact
+              example: John Doe
+            contactEmail:
+              type: string
+              description: Email of project's contact
+              example: johndoe@example.com
+            description:
+              type: string
+              description: Project's description in CommonMark
+              example: |
+                '> This is a sample project.'
+            website:
+              type: string
+              description: Project's website address
+              example: https://example.com
+              nullable: true
+    FullProject:
+      allOf:
+        - $ref: '#/components/schemas/BasicProject'
+        - type: object
+          properties:
+            owner:
+              type: string
+              description: Id of project's owner
+              example: 'johndoe'
+            status:
+              type: string
+              enum:
+                - DRAFT
+                - POSTED
+              description: Project's status
+              example: POSTED
+            public:
+              type: boolean
+              description: Whether the project should display to other users
+              example: true
+            draftAt:
+              type: string
+              format: date-time
+              description: Project's first time to save as draft in Date-time (RFC 3339)
+              example: '2022-05-20T09:28:11.698Z'
+            postedAt:
+              type: string
+              format: date-time
+              description: Project's post time in Date-time (RFC 3339)
+              example: '2022-05-20T09:28:11.698Z'
+    ProjectInfo:
+      allOf:
+        - $ref: '#/components/schemas/FullProject'
+        - type: object
+          properties:
+            positions:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/CorePosition'
+                  - type: object
+                    properties:
+                      draftAt:
+                        type: string
+                        format: date-time
+                        description: Position's first time to save as draft in Date-time (RFC 3339)
+                        example: '2022-05-20T09:28:11.698Z'
+                      postedAt:
+                        type: string
+                        format: date-time
+                        description: Position's post time in Date-time (RFC 3339)
+                        example: '2022-05-20T09:28:11.698Z'

@@ -1,0 +1,7 @@
+node_modules/
+build/
+coverage/
+upload/
+.DS_Store
+database.sqlite3
+.env

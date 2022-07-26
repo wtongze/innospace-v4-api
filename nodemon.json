@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "ignore": [".git", "node_modules", "build"],
+  "watch": ["./src", "openapi.yaml"],
+  "ext": "ts,json",
+  "exec": "npm run start"
+}
