@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import path from 'path';
 import 'dotenv/config';
 
-const PROD = process.env.NODE_ENV === 'production';
+export const PROD = process.env.NODE_ENV === 'production';
 
 export default {
   express: {

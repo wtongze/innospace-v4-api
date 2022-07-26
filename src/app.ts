@@ -4,7 +4,7 @@ import express from 'express';
 import session from 'express-session';
 import passport from 'passport';
 import queryString from 'query-string';
-import config from './config';
+import config, { PROD } from './config';
 import 'dotenv/config';
 import './passport/local';
 import ApplicationRouter from './router/application';
@@ -20,7 +20,12 @@ const BaseRouter = express.Router();
 app.set('query parser', (query: string) =>
   queryString.parse(query, { parseBooleans: true, parseNumbers: true })
 );
-app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(
+  cors({
+    origin: PROD ? 'https://www.innospace.io' : 'http://localhost:3000',
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
