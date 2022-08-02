@@ -12,17 +12,27 @@ declare global {
 }
 
 passport.use(
-  new LocalStrategy({ usernameField: 'id' }, async (id, password, done) => {
-    const currentUser = await User.findByPk(id);
-    if (currentUser && currentUser.password && currentUser.salt) {
-      const hashedPassword = await getPasswordHash(password, currentUser.salt);
-      if (currentUser.password === hashedPassword) {
-        done(null, currentUser);
-        return;
+  new LocalStrategy(
+    { usernameField: 'email' },
+    async (email, password, done) => {
+      const currentUser = await User.findOne({
+        where: {
+          email,
+        },
+      });
+      if (currentUser && currentUser.password && currentUser.salt) {
+        const hashedPassword = await getPasswordHash(
+          password,
+          currentUser.salt
+        );
+        if (currentUser.password === hashedPassword) {
+          done(null, currentUser);
+          return;
+        }
       }
+      done(new Error('Email or Password is incorrect'));
     }
-    done(new Error('Username or Password is incorrect'));
-  })
+  )
 );
 
 passport.serializeUser<string>((user, done) => {

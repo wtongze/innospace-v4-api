@@ -44,7 +44,7 @@ AuthRouter.post(
 
 AuthRouter.post(
   '/signin',
-  body('id').isInt(),
+  body('email').isEmail().normalizeEmail(),
   body('password').notEmpty(),
   validator,
   (req: Request, res: ResponseWithStatus, next) => {
